@@ -1,6 +1,7 @@
 require_relative 'connection.rb'
 require 'progress_bar'
 require "tty-prompt"
+require "tty-box"
 
 class Main
 
@@ -8,55 +9,66 @@ class Main
         @connection = Connection.new
         @connection.connect
         @database_connection = @connection.db
+   
     end
 
     def table_exists?(table_name)
         return false if @database_connection.nil?
-
+    
         result = @database_connection.query("SHOW TABLES LIKE '#{table_name}'")
         result.count > 0
     end
 
     def table_list
-        tables = []
+        @tables = []
         return false if @database_connection.nil?
         result = @database_connection.query("SHOW TABLES")
         result.each do |i|
-            tables << i.values.first
+            @tables << i.values.first
         end
-        puts tables
+        return @tables
     end
+
+    def analyzed_table
+        result = @database_connection.query("DESC users")
+      
+       
+        result.each do |row|
+          puts "Field: #{row['Field']}"
+          puts "Type: #{row['Type']}"
+          puts "Null: #{row['Null']}"
+          puts "Key: #{row['Key']}"
+          puts "Default: #{row['Default']}"
+          puts "Extra: #{row['Extra']}"
+          puts "------------------------"
+        end
+      end
+      
 end
 
 # Main execution
 puts "
-\t███████╗███████╗███████╗██████╗ ███████╗██████╗
+\t███████╗███████╗███████╗██████╗ ███████╗██████╗ 
 \t██╔════╝██╔════╝██╔════╝██╔══██╗██╔════╝██╔══██╗
 \t███████╗█████╗  █████╗  ██║  ██║█████╗  ██████╔╝
 \t╚════██║██╔══╝  ██╔══╝  ██║  ██║██╔══╝  ██╔══██╗
 \t███████║███████╗███████╗██████╔╝███████╗██║  ██║
-\t╚══════╝╚══════╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝
+\t╚══════╝╚══════╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝   
 "
 
 main = Main.new
 prompt = TTY::Prompt.new
 
-bar = ProgressBar.new
-main.table_list
 
-prompt.select("Choose your destiny?", %w(Scorpion Kano Jax))
+# bar = ProgressBar.new
+# main.table_list
 
-choices = %w(vodka beer wine whisky bourbon)
-prompt.multi_select("Select drinks?", choices)
-
-print "\n# Please type your table: "
-table_name = gets.chomp
+listOfTable = main.table_list
 
 
-#bar.increment until bar.finished?  # Simulates progress bar completion
+tableChoice = prompt.multi_select("\n\tSelect table, you can choose multiple table ?", listOfTable)
+box = TTY::Box.success(tableChoice.join(","))
 
-if main.table_exists?(table_name)
-  puts "Table '#{table_name}' exists."
-else
-  puts "Table '#{table_name}' does not exist."
-end
+puts box
+
+main.analyzed_table
